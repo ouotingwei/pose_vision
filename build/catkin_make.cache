@@ -1,0 +1,2 @@
+realsense-ros/realsense2_camera:realsense-ros/realsense2_description
+-DCATKIN_DEVEL_PREFIX=/home/wei/visual_based_pose_estimator/devel -DCMAKE_INSTALL_PREFIX=/home/wei/visual_based_pose_estimator/install -G Unix Makefiles
