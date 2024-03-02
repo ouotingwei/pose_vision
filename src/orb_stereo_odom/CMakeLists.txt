@@ -27,7 +27,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(orb_stereo_odom src/main.cpp)
+add_executable(orb_stereo_odom src/main.cpp
+               include/orb_stereo_odom/common_include.h
+              )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(orb_stereo_odom
