@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import cv2
 import numpy as np
-import time
 
 import rospy
 from sensor_msgs.msg import Image
@@ -44,7 +43,7 @@ def image_callback_cam2(msg):
     pub_cam2.publish(undist_cam2_msg)
 
 def main():
-    rospy.init_node('cam_cali_py')
+    rospy.init_node('fisheye_calibration')
 
     global pub_cam1, pub_cam2
     pub_cam1 = rospy.Publisher("/camera/fisheye1/image_undistorted", Image, queue_size=10)
