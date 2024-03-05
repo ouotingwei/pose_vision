@@ -16,6 +16,26 @@ cv::Mat D_2 = (cv::Mat_<double>(4,1) << -0.008860611356794834, 0.044272929430007
 
 std::vector<int> compression_params;
 
+void undistort(Mat& img, const Mat& K, const Mat& D);
+void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg);
+void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg);
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "fisheye_calibration");
+    ros::NodeHandle nh;
+
+    pub_cam1 = nh.advertise<sensor_msgs::Image>("/camera/fisheye1/image_undistorted", 10);
+    pub_cam2 = nh.advertise<sensor_msgs::Image>("/camera/fisheye2/image_undistorted", 10);
+
+    ros::Subscriber sub_cam1 = nh.subscribe("/camera/fisheye1/image_raw", 10, image_callback_cam1);
+    ros::Subscriber sub_cam2 = nh.subscribe("/camera/fisheye2/image_raw", 10, image_callback_cam2);
+
+    ros::spin();
+
+    return 0;
+}
+
 void undistort(Mat& img, const Mat& K, const Mat& D)
 {
     Mat map1, map2;
@@ -71,18 +91,4 @@ void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg)
     pub_cam2.publish(undist_cam2_msg);
 }
 
-int main(int argc, char **argv)
-{
-    ros::init(argc, argv, "fisheye_calibration");
-    ros::NodeHandle nh;
 
-    pub_cam1 = nh.advertise<sensor_msgs::Image>("/camera/fisheye1/image_undistorted", 10);
-    pub_cam2 = nh.advertise<sensor_msgs::Image>("/camera/fisheye2/image_undistorted", 10);
-
-    ros::Subscriber sub_cam1 = nh.subscribe("/camera/fisheye1/image_raw", 10, image_callback_cam1);
-    ros::Subscriber sub_cam2 = nh.subscribe("/camera/fisheye2/image_raw", 10, image_callback_cam2);
-
-    ros::spin();
-
-    return 0;
-}
