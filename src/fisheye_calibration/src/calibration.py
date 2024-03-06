@@ -1,58 +1,46 @@
 #!/usr/bin/env python
-import cv2
-import numpy as np
 
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+import cv2 as cv
+from matplotlib import pyplot as plt
 
-DIM = [848, 800]
-K_1 = np.array([[286.38861083984375, 0.0, 421.372314453125], [0.0, 286.45220947265625, 390.54730224609375], [0.0, 0.0, 1.0]])
-D_1 = np.array([[-0.012872150167822838], [0.05464962124824524], [-0.05153217166662216], [0.010507550090551376]])
+class StereoVision:
+    def __init__(self):
+        rospy.init_node('stereo_vision_node', anonymous=True)
+        self.bridge = CvBridge()
+        self.imgL = None
+        self.imgR = None
+        self.depth_pub = rospy.Publisher('/depth_image', Image, queue_size=10)
+        self.subL = rospy.Subscriber('/camera/fisheye1/image_undistorted', Image, self.left_callback)
+        self.subR = rospy.Subscriber('/camera/fisheye2/image_undistorted', Image, self.right_callback)
 
-K_2 = np.array([[286.74090576171875, 0.0, 420.4461975097656], [0.0, 286.7449035644531, 393.5614929199219], [0.0, 0.0, 1.0]])
-D_2 = np.array([[-0.008860611356794834], [0.044272929430007935], [-0.04117792844772339], [0.0071413880214095116]])
+    def left_callback(self, data):
+        self.imgL = cv.cvtColor(self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8"), cv.COLOR_BGR2GRAY)
 
-def undistort(img, K, D):
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-    undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        self.process_images()
 
-    # Crop to the middle 400x400 region
-    crop_y = (undistorted_img.shape[0] - 400) // 2
-    crop_x = (undistorted_img.shape[1] - 400) // 2
-    undistorted_img = undistorted_img[crop_y:crop_y+400, crop_x:crop_x+400]
+    def right_callback(self, data):
+        self.imgR = cv.cvtColor(self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8"), cv.COLOR_BGR2GRAY)
 
-    return undistorted_img
+        self.process_images()
 
-def image_callback_cam1(msg):
-    bridge = CvBridge()
-    cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+    def process_images(self):
+        if self.imgL is not None and self.imgR is not None:
+            stereo = cv.StereoBM_create(numDisparities=16, blockSize=15)
+            disparity = stereo.compute(self.imgL, self.imgR)
+            disparity_normalized = cv.normalize(disparity, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_8U)
+            disparity_img_msg = self.bridge.cv2_to_imgmsg(disparity_normalized, encoding="mono8")
+            self.depth_pub.publish(disparity_img_msg)
 
-    undist_cam1 = undistort(cv_image, K_1, D_1)
-
-    undist_cam1_msg = bridge.cv2_to_imgmsg(undist_cam1, encoding="bgr8")
-    pub_cam1.publish(undist_cam1_msg)
-
-def image_callback_cam2(msg):
-    bridge = CvBridge()
-    cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-
-    undist_cam2 = undistort(cv_image, K_2, D_2)
-
-    undist_cam2_msg = bridge.cv2_to_imgmsg(undist_cam2, encoding="bgr8")
-    pub_cam2.publish(undist_cam2_msg)
 
 def main():
-    rospy.init_node('fisheye_calibration')
+    try:
+        stereo_vision = StereoVision()
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
 
-    global pub_cam1, pub_cam2
-    pub_cam1 = rospy.Publisher("/camera/fisheye1/image_undistorted", Image, queue_size=10)
-    pub_cam2 = rospy.Publisher("/camera/fisheye2/image_undistorted", Image, queue_size=10)
-
-    rospy.Subscriber("/camera/fisheye1/image_raw", Image, image_callback_cam1)
-    rospy.Subscriber("/camera/fisheye2/image_raw", Image, image_callback_cam2)
-
-    rospy.spin()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

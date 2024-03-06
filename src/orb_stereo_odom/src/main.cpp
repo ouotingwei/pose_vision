@@ -1,9 +1,13 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <iostream>
+#include <stdio.h>
+#include <vector>
+#include <string>
+
+// opencv library
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
-
-using namespace cv;
 
 ros::Publisher pub_cam1;
 ros::Publisher pub_cam2;
@@ -16,9 +20,9 @@ cv::Mat D_2 = (cv::Mat_<double>(4,1) << -0.008860611356794834, 0.044272929430007
 
 std::vector<int> compression_params;
 
-void undistort(Mat& img, const Mat& K, const Mat& D);
-void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg);
-void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg);
+static void undistort( cv::Mat& img, const cv::Mat& K, const cv::Mat& D );
+static void image_callback_cam1( const sensor_msgs::ImageConstPtr& msg );
+static void image_callback_cam2( const sensor_msgs::ImageConstPtr& msg );
 
 int main(int argc, char **argv)
 {
@@ -36,22 +40,24 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void undistort(Mat& img, const Mat& K, const Mat& D)
+static void undistort(cv::Mat& img, const cv::Mat& K, const cv::Mat& D)
 {
-    Mat map1, map2;
-    fisheye::initUndistortRectifyMap(K, D, Mat::eye(3, 3, CV_64F), K, Size(img.cols, img.rows), CV_16SC2, map1, map2);
-    Mat undistorted_img;
-    remap(img, undistorted_img, map1, map2, INTER_LINEAR);
+    cv::Mat map1, map2;
+    cv::fisheye::initUndistortRectifyMap(K, D, cv::Mat::eye(3, 3, CV_64F), K, cv::Size(img.cols, img.rows), CV_16SC2, map1, map2);
+    cv::Mat undistorted_img;
+
+    remap(img, undistorted_img, map1, map2, cv::INTER_LINEAR);
     
     // Crop to the middle 400x400 region
     int crop_y = (undistorted_img.rows - 400) / 2;
     int crop_x = (undistorted_img.cols - 400) / 2;
-    undistorted_img = undistorted_img(Rect(crop_x, crop_y, 400, 400));
+
+    undistorted_img = undistorted_img(cv::Rect(crop_x, crop_y, 400, 400));
 
     img = undistorted_img;
 }
 
-void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg)
+static void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_bridge::CvImagePtr cv_ptr;
 
@@ -66,12 +72,12 @@ void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg)
     }
 
     undistort(cv_ptr->image, K_1, D_1);
-
+    
     sensor_msgs::ImagePtr undist_cam1_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr->image).toImageMsg();
     pub_cam1.publish(undist_cam1_msg);
 }
 
-void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg)
+static void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_bridge::CvImagePtr cv_ptr;
 
