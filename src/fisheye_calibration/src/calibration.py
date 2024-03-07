@@ -4,7 +4,6 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2 as cv
-from matplotlib import pyplot as plt
 
 class StereoVision:
     def __init__(self):
@@ -28,7 +27,7 @@ class StereoVision:
 
     def process_images(self):
         if self.imgL is not None and self.imgR is not None:
-            stereo = cv.StereoBM_create(numDisparities=16, blockSize=15)
+            stereo = cv.StereoBM_create(numDisparities=16, blockSize=11)
             disparity = stereo.compute(self.imgL, self.imgR)
             disparity_normalized = cv.normalize(disparity, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_8U)
             disparity_img_msg = self.bridge.cv2_to_imgmsg(disparity_normalized, encoding="mono8")
