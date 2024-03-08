@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
-＃include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 // opencv
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
@@ -117,7 +117,7 @@ void gen_disparity()
 {
     if (!img1.empty() && !img2.empty()) 
     {
-        cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16, 21);
+        cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16, 11);
         cv::Mat disparity;
         stereo->compute(img1, img2, disparity);
 

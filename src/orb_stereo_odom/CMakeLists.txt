@@ -7,6 +7,8 @@ project(orb_stereo_odom)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(OpenCV_DIR /usr/lib/x86_64-linux-gnu/cmake/opencv4/)
+set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
+set( LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib )
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
@@ -25,10 +27,10 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}/include
 )
 
 add_executable(orb_stereo_odom src/main.cpp
-               include/orb_stereo_odom/common_include.h
               )
 
 ## Specify libraries to link a library or executable target against
