@@ -50,10 +50,10 @@ void undistort(cv::Mat& img, const cv::Mat& K, const cv::Mat& D)
     cv::Mat undistorted_img;
     remap(img, undistorted_img, map1, map2, cv::INTER_LINEAR);
 
-    // Crop to the middle 400x400 region
-    int crop_y = (undistorted_img.rows - 400) / 2;
-    int crop_x = (undistorted_img.cols - 400) / 2;
-    undistorted_img = undistorted_img(cv::Rect(crop_x, crop_y, 400, 400));
+    // Crop to the middle 300x300 region
+    int crop_y = (undistorted_img.rows - 300) / 2;
+    int crop_x = (undistorted_img.cols - 300) / 2;
+    undistorted_img = undistorted_img(cv::Rect(crop_x, crop_y, 300, 300));
 
     img = undistorted_img;
 }
