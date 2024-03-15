@@ -4,6 +4,10 @@
 // opencv
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
+#include "opencv2/imgproc.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/core/utility.hpp"
 #include <opencv2/ximgproc.hpp>
 
 ros::Publisher pub_cam1;
@@ -22,7 +26,7 @@ cv::Mat D_2 = (cv::Mat_<double>(4,1) << -0.008860611356794834, 0.044272929430007
 void undistort(cv::Mat& img, const cv::Mat& K, const cv::Mat& D);
 void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg);
 void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg);
-void gen_disparity();
+void gen_depth_cloud();
 
 int main(int argc, char **argv)
 {
@@ -79,7 +83,7 @@ void image_callback_cam1(const sensor_msgs::ImageConstPtr& msg)
         pub_cam2.publish(cv_ptr->toImageMsg());
 
         // Generate disparity
-        gen_disparity();
+        gen_depth_cloud();
     }
     catch (cv_bridge::Exception& e)
     {
@@ -104,7 +108,7 @@ void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg)
 
         pub_cam2.publish(cv_ptr->toImageMsg());
 
-        gen_disparity();
+        void gen_depth_cloud();
     }
     catch (cv_bridge::Exception& e)
     {
@@ -113,21 +117,40 @@ void image_callback_cam2(const sensor_msgs::ImageConstPtr& msg)
     }
 }
 
-void gen_disparity()
+void gen_depth_cloud()
 {
     if (!img1.empty() && !img2.empty()) 
     {
-        cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16, 11);
-        cv::Mat disparity;
-        stereo->compute(img1, img2, disparity);
+        int max_disp = 16;
+        float lambda = 2000;
+        float sigma = 1;
+        int wsize = 9;
+
+        cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter;
+        cv::Ptr<cv::StereoSGBM> left_matcher = cv::StereoSGBM::create(max_disp, wsize);
+        wls_filter = cv::ximgproc::createDisparityWLSFilter(left_matcher);
+        cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(left_matcher);
+
+        cv::Mat left_disp;
+        cv::Mat right_disp;
+        cv::Mat filtered_disp;
+
+        left_matcher->compute(img1, img2, left_disp);
+        right_matcher->compute(img2, img1, right_disp);
+
+        
+
+        wls_filter->setLambda(lambda);
+        wls_filter->setSigmaColor(sigma);
+        wls_filter->filter(left_disp, img1, filtered_disp, right_disp);
 
         // Normalize the disparity image
         cv::Mat disparity_normalized;
-        cv::normalize(disparity, disparity_normalized, 0, 255, cv::NORM_MINMAX, CV_8U);
+        cv::normalize(filtered_disp, disparity_normalized, 0, 255, cv::NORM_MINMAX, CV_8U);
 
         // Convert the normalized disparity image to sensor_msgs::Image
         sensor_msgs::ImagePtr disparity_img_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", disparity_normalized).toImageMsg();
-
+        
         // Publish the disparity image
         disparity_pub.publish(disparity_img_msg);
     }
